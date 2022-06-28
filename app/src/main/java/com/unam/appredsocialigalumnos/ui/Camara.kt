@@ -6,7 +6,6 @@ import android.media.MediaScannerConnection
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.provider.Telephony.Mms.Part.FILENAME
 import android.util.DisplayMetrics
 import android.util.Log
 import android.webkit.MimeTypeMap
@@ -16,6 +15,11 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toFile
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
 import com.unam.appredsocialigalumnos.R
 import com.unam.appredsocialigalumnos.databinding.ActivityCamaraBinding
 import java.io.File
@@ -41,6 +45,11 @@ class Camara : AppCompatActivity() {
     private lateinit var outputDirectory: File
     private lateinit var cameraExecutor: ExecutorService
 
+    //Database
+    private lateinit var mDatabase: DatabaseReference
+    private lateinit var mAuth: FirebaseAuth
+    private lateinit var mStorage: StorageReference
+
     lateinit var binding : ActivityCamaraBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,6 +59,11 @@ class Camara : AppCompatActivity() {
 
         outputDirectory = getOutputDirectory()
         cameraExecutor = Executors.newSingleThreadExecutor()
+
+        //Storage
+        mAuth = FirebaseAuth.getInstance()
+        mStorage = FirebaseStorage.getInstance().reference
+        mDatabase = FirebaseDatabase.getInstance().reference
 
         binding.cameraCaptureButton.setOnClickListener {
             takePhoto()
@@ -131,7 +145,7 @@ class Camara : AppCompatActivity() {
 
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     val savedUri = Uri.fromFile(photoFile)
-
+                    uploadUserPhoto(savedUri)
                     Toast.makeText(baseContext,  R.string.img_guardada.toString() + " ${savedUri}", Toast.LENGTH_SHORT).show()
 
                     // Utilizamos [MediaScannerConnection] para escanear los medios de la galeria
@@ -299,9 +313,26 @@ class Camara : AppCompatActivity() {
         cameraExecutor.shutdown()
     }
 
+    // Base de datos firebase
+    fun uploadUserPhoto(photo: Uri) {
+        mStorage.child("users/${mAuth.currentUser!!.uid}/photo").putFile(photo)
+            .addOnCompleteListener {
+                if (it.isSuccessful) {
+                    (it.result)
+                    Log.d(TAG_F,it.result.toString())
+                    Log.d(TAG_F,mAuth.currentUser!!.uid.toString())
+                } else {
+                    Log.d(TAG_F,it.exception!!.message!!)
+                    Log.d(TAG_F,mAuth.currentUser!!.uid.toString())
+                }
+            }
+    }
+
+
     // Declaración de constantes
     companion object{
         private const val TAG = "CamaraXBasica"
+        private const val TAG_F = "FireStorage"
         private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
         private const val RATIO_4_3_VALUE = 4.0 / 3.0
         private const val RATIO_16_9_VALUE = 16.0 / 9.0

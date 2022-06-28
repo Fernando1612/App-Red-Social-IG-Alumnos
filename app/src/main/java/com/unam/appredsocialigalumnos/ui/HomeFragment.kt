@@ -1,10 +1,13 @@
 package com.unam.appredsocialigalumnos.ui
 
+import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.unam.appredsocialigalumnos.R
 import com.unam.appredsocialigalumnos.databinding.FragmentHomeBinding
 import com.unam.appredsocialigalumnos.databinding.FragmentSearchBinding
+import com.unam.appredsocialigalumnos.models.Post
 import com.unam.appredsocialigalumnos.util.ViewPagerAdapter
+import retrofit2.Call
 
 class HomeFragment :  FragmentBase<FragmentHomeBinding>(
     R.layout.fragment_home, FragmentHomeBinding::bind) {

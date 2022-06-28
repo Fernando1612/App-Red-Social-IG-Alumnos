@@ -8,17 +8,25 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import com.unam.appredsocialigalumnos.R
 import com.unam.appredsocialigalumnos.databinding.FragmentSingUpBinding
+import kotlin.Result.Companion.failure
 
 class SignUpFragment :  FragmentBase<FragmentSingUpBinding>(
     R.layout.fragment_sing_up, FragmentSingUpBinding::bind) {
 
     private lateinit var auth: FirebaseAuth
 
+    private lateinit var mDatabase: DatabaseReference
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         auth = Firebase.auth
+
+        //Database
+        mDatabase =  FirebaseDatabase.getInstance().reference
     }
 
     override fun onStart() {
@@ -55,7 +63,9 @@ class SignUpFragment :  FragmentBase<FragmentSingUpBinding>(
                     // Sign in success, update UI with the signed-in user's information
                     Log.d(TAG, "createUserWithEmail:success")
                     val user = auth.currentUser
-                    startNavMainActivity(user)
+                    mDatabase.createUser(user!!.uid, user.toString()){
+                        startNavMainActivity(user)
+                    }
                 } else {
                     // If sign in fails, display a message to the user.
                     Log.w(TAG, "createUserWithEmail:failure", task.exception)
@@ -72,6 +82,17 @@ class SignUpFragment :  FragmentBase<FragmentSingUpBinding>(
         intent.putExtra(USERNAME_KEY, user)
         startActivity(intent)
         requireActivity().finish()
+    }
+
+    private fun DatabaseReference.createUser(uid: String, user: String, onSuccess: () -> Unit) {
+        val reference = child("users").child(uid).child("photo")
+        reference.setValue(user).addOnCompleteListener {
+            if (it.isSuccessful) {
+                onSuccess()
+            } else {
+                Log.w(TAG, "createUserWithEmail:failure")
+            }
+        }
     }
 
     companion object {
