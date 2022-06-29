@@ -4,6 +4,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.preferencesKey
+import androidx.datastore.preferences.createDataStore
+import androidx.lifecycle.lifecycleScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
@@ -12,6 +18,7 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.unam.appredsocialigalumnos.R
 import com.unam.appredsocialigalumnos.databinding.FragmentSingUpBinding
+import kotlinx.coroutines.launch
 import kotlin.Result.Companion.failure
 
 class SignUpFragment :  FragmentBase<FragmentSingUpBinding>(
@@ -21,12 +28,17 @@ class SignUpFragment :  FragmentBase<FragmentSingUpBinding>(
 
     private lateinit var mDatabase: DatabaseReference
 
+    private lateinit var dataStore: DataStore<Preferences>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         auth = Firebase.auth
 
         //Database
         mDatabase =  FirebaseDatabase.getInstance().reference
+
+        // DataStore
+        dataStore = context!!.applicationContext.createDataStore(name = "settings")
     }
 
     override fun onStart() {
@@ -60,6 +72,12 @@ class SignUpFragment :  FragmentBase<FragmentSingUpBinding>(
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener(requireActivity()) { task ->
                 if (task.isSuccessful) {
+                    //dataStore
+                    lifecycleScope.launch{
+                        save_email("email",email)
+                        save_password("password", password)
+                    }
+
                     // Sign in success, update UI with the signed-in user's information
                     Log.d(TAG, "createUserWithEmail:success")
                     val user = auth.currentUser
@@ -92,6 +110,19 @@ class SignUpFragment :  FragmentBase<FragmentSingUpBinding>(
             } else {
                 Log.w(TAG, "createUserWithEmail:failure")
             }
+        }
+    }
+
+    private suspend fun save_email(key: String, email: String){
+        val dataStoreKey = preferencesKey<String>(key)
+        dataStore.edit { settings ->
+            settings[dataStoreKey] = email
+        }
+    }
+    private suspend fun save_password(key: String, password: String){
+        val dataStoreKey = preferencesKey<String>(key)
+        dataStore.edit { settings ->
+            settings[dataStoreKey] = password
         }
     }
 

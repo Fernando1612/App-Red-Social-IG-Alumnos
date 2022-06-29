@@ -2,8 +2,14 @@ package com.unam.appredsocialigalumnos.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
 import android.util.Log
 import android.widget.Toast
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.preferencesKey
+import androidx.datastore.preferences.createDataStore
+import androidx.lifecycle.lifecycleScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
@@ -11,6 +17,8 @@ import com.google.firebase.ktx.Firebase
 import com.unam.appredsocialigalumnos.R
 import com.unam.appredsocialigalumnos.databinding.FragmentHostLoginBinding
 import com.unam.appredsocialigalumnos.util.findNavControllerSafely
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 const val USERNAME_KEY = "username_key"
 
@@ -19,9 +27,16 @@ class LoginFragment :  FragmentBase<FragmentHostLoginBinding>(
 
     private lateinit var auth: FirebaseAuth
 
+    //data Stores
+    private lateinit var dataStore: DataStore<Preferences>
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         auth = Firebase.auth
+
+        //Data stores
+        dataStore = context!!.applicationContext.createDataStore(name = "settings")
     }
 
     override fun onStart() {
@@ -37,6 +52,13 @@ class LoginFragment :  FragmentBase<FragmentHostLoginBinding>(
     }
 
     override fun initElements() {
+        lifecycleScope.launch{
+            val email = read("email")
+            val password = read("password")
+            binding.usernameTextField.editText?.setText(email)
+            binding.passwordTextField.editText?.setText(password)
+        }
+
         binding.tvSignUp.setOnClickListener {
             findNavControllerSafely()?.navigate(R.id.action_loginFragment_to_signUpFragment)
         }
@@ -74,6 +96,12 @@ class LoginFragment :  FragmentBase<FragmentHostLoginBinding>(
         intent.putExtra(USERNAME_KEY, user)
         startActivity(intent)
         requireActivity().finish()
+    }
+
+    private suspend fun read(key: String): String? {
+        val dataStoreKey = preferencesKey<String>(key)
+        val preferences = dataStore.data.first()
+        return preferences[dataStoreKey]
     }
 
     companion object{
